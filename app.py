@@ -3,10 +3,17 @@ from flask_bootstrap import Bootstrap
 from flask_mysqldb import MySQL
 from flaskext.mysql import MySQL
 from werkzeug import generate_password_hash, check_password_hash
+from flask_login import LoginManager, login_required, login_user, logout_user
 
-mysql = MySQL()
+
+mysql=MySQL()
 app = Flask(__name__)
-app.secret_key = 'why would I tell you my secret key?'
+app.secret_key = 'secret key goes here'
+
+# flask-login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 # MySQL configurations
 app.config['MYSQL_DATABASE_USER'] = 'fabricioricci'
@@ -31,19 +38,19 @@ def showSignin():
         return render_template('userHome.html')
     else:
         return render_template('signin.html')
-	
+    
 @app.route('/userHome')
 def userHome():
     if session.get('user'):
         return render_template('userHome.html')
     else:
         return render_template('error.html',error = 'Unauthorized Access')
-		
+        
 @app.route('/logout')
 def logout():
     session.pop('user',None)
     return redirect('/')
-	
+    
 @app.route('/validateLogin',methods=['POST'])
 def validateLogin():
     try:
@@ -62,7 +69,7 @@ def validateLogin():
                 return render_template('error.html',error = 'Wrong Email address or Password.')
         else:
             return render_template('error.html',error = 'Wrong Email address or Password.')
-		
+        
     except Exception as e:
         return render_template('error.html',error = str(e))
     finally:
@@ -101,6 +108,118 @@ def signUp():
         cursor.close() 
         conn.close()
         
-if __name__ == '__main__':
-    app.run(port=5002)
+
+@app.route("/product/new", methods=['GET', 'POST'])
+@login_required
+def new_product():
+    form = DeptForm()
+    if form.validate_on_submit():
+        dept = Department(ProductID=form.ProductID.data, NameOfProduct=form.NameOfProduct.data,Manufacturer=form.Manufacturer.data,Price=form.Price.data, RAM=form.RAM.data, ScreenSize=form.ScreenSize.data)
+        db.session.add(dept)
+        db.session.commit()
+        flash('You have added a new product!', 'success')
+        return redirect(url_for('/userHome'))
+    return render_template('createproducts.html', title='New Product',
+                           form=form, legend='New Product')
+                           
+                           
+@app.route("/prod/<ProductID>")
+@login_required
+def prod(ProductID):
+    prod = products.query.get_or_404(dnumber)
+    return render_template('prod.html', title=prod.NameOfProduct, prod=prod, now=datetime.utcnow())                        
+                           
+@app.route("/prod/<ProductID>/update", methods=['GET', 'POST'])
+@login_required
+def update_product(ProductID):
+    prod = products.query.get_or_404(ProductID)
+    currentProd = prod.NameOfProduct
+
+    form = ProdUpdateForm()
+    if form.validate_on_submit():          
+        if currentProd !=form.NameOfProduct.data:
+            dept.NameOfProduct=form.NameOfProduct.data
+            db.session.commit()
+            flash('Your product has been updated!', 'success')
+            return redirect(url_for('prod', ProductID=ProductID))
+    elif request.method == 'GET':              
+
+        form.ProductID.data = prod.ProductID
+        form.NameOfProduct.data = prod.NameOfProduct
+        form.Manufacturer.data = prod.Manufacturer
+        form.Price.data = prod.Price
+        form.RAM.data = prod.RAM
+        form.ScreenSize.data = prod.ScreenSize
+    return render_template('createproducts.html', title='Update Product',
+                           form=form, legend='Update Department')
+
+
+@app.route("/dept/<ProductID>/delete", methods=['POST'])
+@login_required
+def delete_product(ProductID):
+    prod = products.query.get_or_404(ProductID)
+    db.session.delete(prod)
+    db.session.commit()
+    flash('The product has been deleted!', 'success')
+    return redirect(url_for('home'))
     
+@app.route('/manufacturers')
+def manufacturers():
+    #cur = mysql.connection.cursor()
+    conn = mysql.connect()
+    cursor = conn.cursor()
+    resultValue = cursor.execute("SELECT Manufacturer FROM products")
+    if resultValue > 0:
+        prodDetails = cursor.fetchall()
+        return render_template('manufacturers.html',data=prodDetails)
+
+@app.route('/totalsum')
+def totalsum():
+    cur = mysql.connection.cursor()
+    resultValue = cur.execute("SELECT SUM(Price) FROM products")
+    if resultValue > 0:
+        prodDetails = cur.fetchall()
+        return render_template('manufacturers.html',data=prodDetails)
+
+@app.route('/ramrange')
+def ramrange():
+    cur = mysql.connection.cursor()
+    resultValue = cur.execute("SELECT * FROM products WHERE RAM > 90 AND RAM <= 150")
+    if resultValue > 0:
+        prodDetails = cur.fetchall()
+        return render_template('manufacturers.html',data=prodDetails)
+		
+@app.route('/totalcostofproduct')
+def totalcostofproduct():
+    cur = mysql.connection.cursor()
+    resultValue = cur.execute("SELECT * FROM products WHERE RAM > 90 AND RAM <= 150")
+    if resultValue > 0:
+        prodDetails = cur.fetchall()
+        return render_template('manufacturers.html',data=prodDetails)
+		
+@app.route('/expensiveproducts')
+def expensiveproducts():
+    cur = mysql.connection.cursor()
+    resultValue = cur.execute("SELECT ProductID FROM products WHERE Price > (SELECT AVG(Price) FROM products)")
+    if resultValue > 0:
+        prodDetails = cur.fetchall()
+        return render_template('manufacturers.html',data=prodDetails)
+		
+@app.route('/totalquantity')
+def totalquantity():
+    cur = mysql.connection.cursor()
+    resultValue = cur.execute("SELECT ProductID, (SELECT SUM(Quantity) FROM orderdetails WHERE ProductID=products.ProductID) AS 'total sold' FROM products")
+    if resultValue > 0:
+        prodDetails = cur.fetchall()
+        return render_template('manufacturers.html',data=prodDetails)
+
+@app.route('/joinquery')
+def joinquery():
+    cur = mysql.connection.cursor()
+    resultValue = cur.execute("SELECT od.OrderNumber, od.ProductID, p.NameOfProduct, od.Price, od.Quantity, (od.Price * od.Quantity) AS 'total cost' FROM orderdetails AS od INNER JOIN products AS p ON p.ProductID = od.ProductID")
+    if resultValue > 0:
+        prodDetails = cur.fetchall()
+        return render_template('manufacturers.html',data=prodDetails)
+        
+if __name__ == '__main__':
+    app.run(debug=True)  
