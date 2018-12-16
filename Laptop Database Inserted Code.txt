@@ -1,0 +1,49 @@
+INSERT INTO customers (CustomerID, FirstName, LastName, Email, CreditCardNum)
+VALUES ('001', 'David', 'Smith', 'smith@gmail.com', '1234567812345678');
+		('002', 'Tom', 'Johnson', 'johnson@gmail.com', '3725649173900263');
+		('003', 'Steve', 'Miller', 'miller@gmail.com', '2615436183627152');
+		
+ALTER TABLE products
+ADD RAM Varchar(20),
+ADD ScreenSize Varchar(20);
+		
+UPDATE products
+SET NameOfProduct = 'laptop', Price = '1000'
+WHERE ProductID = 1111;
+
+UPDATE products
+SET NameOfProduct = 'laptop', Price = '900'
+WHERE ProductID = 2222;
+
+UPDATE products
+SET NameOfProduct = 'laptop', Price = '850'
+WHERE ProductID = 3333;
+
+INSERT INTO Orders (OrderNumber, CustomerID, OrderDate, ShipToAddress, EstDateOfDelivery)
+VALUES ('01', '1', '05/10/18', '123 S. Main St.', '05/12/18');
+		('02', '2', '05/11/18', '333 N. Water St.', '05/13/18');
+		('03', '2', '05/11/18', '472 W. State St.', '05/13/18');
+		('04', '3', '05/20/18', '345 Rodeo Dr.', '05/22/18');
+		('05', '2', '05/21/18', '284 Sunset Blvd.', '05/23/18');
+UPDATE orders
+SET OrderNumber = '112'
+WHERE OrderNumber = 2;
+
+UPDATE orders
+SET OrderNumber = '113'
+WHERE OrderNumber = 3;	
+
+UPDATE orders
+SET OrderNumber = '114'
+WHERE OrderNumber = 4;	
+
+UPDATE orders
+SET OrderNumber = '115'
+WHERE OrderNumber = 5;	
+
+INSERT INTO Orders (OrderNumber, ProductID, Price, Quantity, TotalPrice)
+VALUES ('111', '3333', '850', '1', '850'),
+		('112', '2222', '900', '2', '1800'),
+		('113', '3333', '850', '2', '1700'),
+		('114', '1111', '1000', '1', '1000'),
+		('115', '3333', '850', '1', '850');	
